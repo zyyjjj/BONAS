@@ -18,6 +18,7 @@ from opendomain_utils.bn_utils import set_running_statistics
 import copy
 CIFAR_CLASSES = 10
 
+# TODO: study this, maybe can tune parameters here
 class Trainer:
     def __init__(self,
                  train_supernet_epochs=5,
@@ -161,7 +162,7 @@ class Trainer:
         with torch.no_grad():
             for step, (input, target) in enumerate(self.valid_loader):
                 input = Variable(input).cuda()
-                target = Variable(target).cuda(async=True)
+                target = Variable(target).cuda(non_blocking=True)
                 logits = model(input, mask=mask)
                 loss = self.criterion(logits, target)
                 prec1, prec5 = utils.accuracy(logits, target, topk=(1, 5))
@@ -184,7 +185,7 @@ class Trainer:
             else:
                 mask = random.choice(self.subnet_masks)
             input = Variable(input).cuda()
-            target = Variable(target).cuda(async=True)
+            target = Variable(target).cuda(non_blocking=True)
             optimizer.zero_grad()
             logits = model(input, mask=mask)
             loss = self.criterion(logits, target)

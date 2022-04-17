@@ -1,8 +1,8 @@
 import os
 # modify the directory paths to get started
 taskname = "supermodel_random_100"
-local_root_dir = "/home/xuhang/han/nips/" # root working directory
-local_data_dir = "/home/xuhang/han/nips/data" # data root
+local_root_dir = "/home/yz685/BONAS/" # root working directory
+local_data_dir = "/home/yz685/BONAS/" # data root
 results_dir = "trained_results"
 trained_pickle_file = "trained_models.pkl"
 trained_csv_file = "trained_models.csv"

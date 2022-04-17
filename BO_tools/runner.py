@@ -20,7 +20,7 @@ class Runner(object):
                  loss_num=3,
                  generate_num=1000,
                  iterations=1000,
-                 sample_method="random",
+                 sample_method="random", # TODO: can tweak this
                  training_cfg=None,
                  bo_sample_num=5,
                  mode="supernet",
@@ -33,7 +33,7 @@ class Runner(object):
         self.generate_num = generate_num
         self.max_acc = 0
         self.max_hash = 'none'
-        self.gcn_lr = gcn_lr
+        self.gcn_lr = gcn_lr # TODO: can tweak this
         self.if_init_samples = if_init_samples
         self.bo_sample_num = bo_sample_num
         self.eval_submodel_path = eval_submodel_path
@@ -121,8 +121,8 @@ class Runner(object):
                 datapoints = pickle.load(f)
                 eval_genotypes = [datapoint['genotype'] for datapoint in datapoints]
                 eval_num = len(eval_genotypes)
-        results = self.trainer.train_and_eval(genotypes, eval_genotypes)
-        accs = [result[1] for result in results]
+        results = self.trainer.train_and_eval(genotypes, eval_genotypes) 
+        accs = [result[1] for result in results] # get top 1 accuracy
         trained_archs = []
         trained_csvs = []
         trained_datapoints = []
@@ -184,9 +184,9 @@ class Runner(object):
                                                                                                 trained_models=trained_models)
             self.train_super_model(selected_points)
             logging.info(f"iter{iteration},current max: {self.max_acc}, max hash {self.max_hash}")
-            logging.info("Update GCN!!")
+            logging.info("Retrain GCN with expanded data")
             self.optimizer.retrain_NN()
-            logging.info("Update LR!!")
+            logging.info("Retrain regression model with expanded data")
             self.optimizer.retrain_LR()
 
     def run(self):
