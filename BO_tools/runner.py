@@ -26,18 +26,20 @@ class Runner(object):
                  mode="supernet",
                  if_init_samples=True,
                  init_num=10,
-                 eval_submodel_path = None
+                 eval_submodel_path = None,
+                 regression_type = 'linear'
                  ):
         assert training_cfg is not None
         self.mode = mode
         self.generate_num = generate_num
         self.max_acc = 0
         self.max_hash = 'none'
-        self.gcn_lr = gcn_lr # TODO: can tweak this
+        self.gcn_lr = gcn_lr # TODO: can tweak this hyperparameter
         self.if_init_samples = if_init_samples
         self.bo_sample_num = bo_sample_num
         self.eval_submodel_path = eval_submodel_path
         self.loss_num = loss_num
+        self.regression_type = regression_type
         self.gcn_epochs = gcn_epochs
         self.iterations = iterations
         self.sample_method = sample_method
@@ -62,7 +64,8 @@ class Runner(object):
         # builder BO optimizer
         self.trained_arch_list = get_trained_archs()
         self.optimizer = optimizer_gcn.Optimizer(self.trained_arch_list, train_epoch=self.gcn_epochs,
-                                                 lr=self.gcn_lr, lossnum=self.loss_num)
+                                                 lr=self.gcn_lr, lossnum=self.loss_num,
+                                                 regression_type = self.regression_type)
         self.optimizer.train()
 
     def build_sampler(self):

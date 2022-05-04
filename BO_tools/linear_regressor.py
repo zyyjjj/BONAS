@@ -9,7 +9,7 @@ import numpy as np
 from BO_tools.alpha_beta import fit as get_alpha_beta
 import torch
 
-
+# TODO: can try quantile regression
 class LinearRegressor():
 
     def __init__(self, dataset, intercept=True, ifTransformSigmoid=True):
@@ -27,7 +27,7 @@ class LinearRegressor():
         train_X = dataset[0]
         train_X = train_X.cpu().data.numpy()
         train_Y = dataset[1]
-        if self.ifTransformSigmoid:
+        if self.ifTransformSigmoid: # do logit transformation on train_Y
             train_Y = np.log(train_Y / (1 - train_Y))
         # xx_inv stands for K inverse, paper used sum instead of lstsq, paper has beta and alpha as hyper parameter
         # beta stands for m, paper has beta as hyper parameter, 64*1
@@ -53,7 +53,7 @@ class LinearRegressor():
             test_pred = test_pred.cpu().data.numpy()
         else:
             test_pred = np.dot(test_X, m)
-        if self.ifTransformSigmoid:
+        if self.ifTransformSigmoid: # inverse logit transform to original values
             test_pred_true = 1 / (1 + np.exp(-test_pred))
         else:
             test_pred_true = test_pred

@@ -2,6 +2,7 @@ import time
 import numpy as np
 from . import neural_net_gcn as nn
 from . import linear_regressor as lm
+from . import quantile_regressor as qm
 import scipy.stats as stats
 from predictors.utils.gcn_utils import padzero, add_global_node
 from opendomain_utils.loss_function import weighted_exp, weighted_linear, weighted_log
@@ -14,7 +15,7 @@ import logging
 class Optimizer(object):
 
     def __init__(self, dataset, val_set=None, ifPretrain=False, ifTransformSigmoid=True, ifFindMax=True,
-                 lr=0.001, train_epoch=1, lossnum=3, maxsize=7):
+                 lr=0.001, train_epoch=1, lossnum=3, maxsize=7, regression_type = 'linear'):
         """Initialization of Optimizer object
 
         Keyword arguments:
@@ -32,6 +33,7 @@ class Optimizer(object):
         self.lr = lr
         self.num_epoch = train_epoch
         self.loss = self.lossList[lossnum]
+        self.regression_type = regression_type
 
     def train(self):
         """ Using the stored dataset and architecture, trains the neural net to
@@ -48,9 +50,15 @@ class Optimizer(object):
         # Extract features
         train_features = self.extract_features(self.train_adj, self.train_features)
         lm_dataset = (train_features, self.train_Y)
+
         # Train and predict with linear_regressor
-        linear_regressor = lm.LinearRegressor(lm_dataset, intercept=False, ifTransformSigmoid=self.ifTransformSigmoid)
-        linear_regressor.train()
+        # TODO: enable replacing it with quantile regressor here
+        if self.regression_type == 'linear':
+            linear_regressor = lm.LinearRegressor(lm_dataset, intercept=False, ifTransformSigmoid=self.ifTransformSigmoid)
+            linear_regressor.train()
+        elif self.regression_type == 'quantile':
+            # TODO: is this function necessary?
+            pass
         time_ = time.time()
         print(f"train gcn time:{start - time_}")
 
@@ -83,6 +91,7 @@ class Optimizer(object):
         train_features = self.extract_features(self.train_adj, self.train_features)
         lm_dataset = (train_features, self.train_Y)
         # Train and predict with linear_regressor
+        # TODO: enable replacing with quantile regressor
         linear_regressor = lm.LinearRegressor(lm_dataset, intercept=False, ifTransformSigmoid=self.ifTransformSigmoid)
         linear_regressor.train()
 
@@ -212,11 +221,18 @@ class Optimizer(object):
         train_features = self.extract_features(self.train_adj, self.train_features)
         domain_features = self.extract_features(domain_adj, domain_feature)
         lm_dataset = (train_features, self.train_Y)
-        linear_regressor = lm.LinearRegressor(lm_dataset, intercept=False, ifTransformSigmoid=self.ifTransformSigmoid)
-        linear_regressor.train()
-        pred, hi_ci, lo_ci, pred_true = linear_regressor.predict(domain_features)
-        train_Y = self.train_Y
-        ucb, sig = self.get_ucb(train_Y, pred, hi_ci)
+
+        if self.regression_type == 'linear':
+            linear_regressor = lm.LinearRegressor(lm_dataset, intercept=False, ifTransformSigmoid=self.ifTransformSigmoid)
+            linear_regressor.train()
+            pred, hi_ci, lo_ci, pred_true = linear_regressor.predict(domain_features)
+            train_Y = self.train_Y
+            ucb, sig = self.get_ucb(train_Y, pred, hi_ci)
+        elif self.regression_type == 'quantile':
+            quantile_regressor = qm.QuantileRegressor(lm_dataset)
+            # here, 'sig' is actually the difference between 95% and 5% quantile
+            pred, ucb, lcb, pred_true, sig = quantile_regressor.predict(domain_features)
+        
         if detail:
             return pred_true, ucb, sig
         else:
