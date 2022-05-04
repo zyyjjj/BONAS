@@ -2,7 +2,7 @@ import numpy as np
 import torch
 from sklearn.linear_model import QuantileRegressor
 
-class QuantileRegressor():
+class Quantile_Regressor():
     
     def __init__(self, dataset, quantiles = [0.05, 0.5, 0.95], ifTransformSigmoid=True):
         """Initialize Optimizer object
@@ -25,7 +25,7 @@ class QuantileRegressor():
             qr_model = QuantileRegressor(quantile=quantile, alpha=0).fit(train_X, train_Y)
             qr_models[quantile] = qr_model
         
-        self.__qr_models = qr_models
+        self._qr_models = qr_models
 
     def predict(self, test_X):
         test_X = test_X.cpu().data.numpy()
@@ -33,7 +33,7 @@ class QuantileRegressor():
         # dictionary with quantile as key and predictions as values
         test_pred_vals = {}
         for quantile in self.__quantiles:
-            res = self.__qr_models[quantile].predict(test_X)
+            res = self._qr_models[quantile].predict(test_X)
             test_pred_vals[quantile] = np.reshape(res, (test_X.shape[0], 1))
         
         if self.ifTransformSigmoid: # inverse logit transform to original values

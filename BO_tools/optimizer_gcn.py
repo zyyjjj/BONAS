@@ -57,8 +57,9 @@ class Optimizer(object):
             linear_regressor = lm.LinearRegressor(lm_dataset, intercept=False, ifTransformSigmoid=self.ifTransformSigmoid)
             linear_regressor.train()
         elif self.regression_type == 'quantile':
-            # TODO: is this function necessary?
-            pass
+            quantile_regressor = qm.Quantile_Regressor(lm_dataset, ifTransformSigmoid=self.ifTransformSigmoid)
+            quantile_regressor.train()
+            
         time_ = time.time()
         print(f"train gcn time:{start - time_}")
 
@@ -229,7 +230,8 @@ class Optimizer(object):
             train_Y = self.train_Y
             ucb, sig = self.get_ucb(train_Y, pred, hi_ci)
         elif self.regression_type == 'quantile':
-            quantile_regressor = qm.QuantileRegressor(lm_dataset)
+            quantile_regressor = qm.Quantile_Regressor(lm_dataset)
+            quantile_regressor.train()
             # here, 'sig' is actually the difference between 95% and 5% quantile
             pred, ucb, lcb, pred_true, sig = quantile_regressor.predict(domain_features)
         
