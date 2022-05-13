@@ -52,7 +52,7 @@ class Optimizer(object):
         lm_dataset = (train_features, self.train_Y)
 
         # Train and predict with linear_regressor
-        # TODO: enable replacing it with quantile regressor here
+        # enable replacing it with quantile regressor here
         if self.regression_type == 'linear':
             linear_regressor = lm.LinearRegressor(lm_dataset, intercept=False, ifTransformSigmoid=self.ifTransformSigmoid)
             linear_regressor.train()

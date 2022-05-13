@@ -16,6 +16,7 @@ DataParallel = torch.nn.parallel.DistributedDataParallel if distributed else tor
 from itertools import cycle, islice
 from opendomain_utils.bn_utils import set_running_statistics
 import copy
+from profiling import get_CPU_memory_info, get_GPU_memory_info
 CIFAR_CLASSES = 10
 
 # TODO: study this, maybe can tune parameters here
@@ -60,6 +61,9 @@ class Trainer:
         self.train_loader_super, self.train_loader_sub, self.valid_loader = self.build_dataloader()
 
     def build_dataloader(self):
+        # train_loader_super and train_loader_sub are both CIFAR10 training data! 
+        # super batch size = 64, sub batch size = 128
+        
         train_transform, valid_transform = utils._data_transforms_cifar10()
         train_data = dset.CIFAR10(root=self.data_path, train=True, download=True, transform=train_transform)
         valid_data = dset.CIFAR10(root=self.data_path, train=False, download=True, transform=valid_transform)
@@ -105,6 +109,7 @@ class Trainer:
         supernet = self.build_model(self.supernet_mask)
         logging.info("Training Super Model ...")
         logging.info("param size = %fMB", utils.count_parameters_in_MB(supernet))
+        
         optimizer = torch.optim.SGD(
             supernet.parameters(),
             self.learning_rate,
@@ -113,15 +118,27 @@ class Trainer:
         )
         scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, float(self.epochs))
 
+        # this is technically "meta-epoch"
         for epoch in range(self.epochs):
+            print('epoch {}'.format(epoch))
             logging.info('epoch %d lr %e', epoch, scheduler.get_lr()[0])
             supernet.drop_path_prob = self.drop_path_prob * epoch / self.epochs
             if epoch in range(self.train_supernet_epochs):
+                # train the (merged) supernet for the first train_spnet_epochs number of epochs\
+                # using a smaller batch size
                 self.train_supernet(supernet, optimizer, epoch)
             else:
+                # then, train with supernet arg turned off, which basically means a larger batch size
                 self.train(supernet, optimizer, supernet=False)
+            
+            # decrease learning rate at every meta-epoch
             scheduler.step()
+
+            # log GPU memory consumption
+            get_GPU_memory_info()
+            
         logging.info("Evaluating subnets ...")
+        
         results = self.evaluate_subnets(supernet, self.subnet_masks, self.genotypes, self.eval_genos)
         return results
 
@@ -145,6 +162,7 @@ class Trainer:
             supernet.eval()
             supernet_copy = copy.deepcopy(supernet)
             i=1
+            # evaluate subnets using shared weights of the supernet
             for mask, genotype in zip(subnet_masks, genotypes):
                 set_running_statistics(supernet_copy, self.train_loader_sub, mask)
                 obj, top1, top5 = self.evaluate(supernet_copy, mask)
@@ -199,5 +217,6 @@ class Trainer:
             top1.update(prec1.data.item(), n)
             top5.update(prec5.data.item(), n)
             if step % self.report_freq == 0:
-                logging.info('supernet train %03d %e %f %f', step, objs.avg, top1.avg / 100, top5.avg / 100)
+                is_super = 'super' if supernet else 'non-super'
+                logging.info('train ' + is_super + ' network %03d %e %f %f', step, objs.avg, top1.avg / 100, top5.avg / 100)
                 copy_log_dir()
