@@ -2,6 +2,7 @@ from opendomain_utils.operations import *
 from opendomain_utils.genotypes import PRIMITIVES
 from opendomain_utils import genotypes
 import numpy as np
+import pdb
 
 
 class MixedOp(nn.Module):
@@ -10,8 +11,8 @@ class MixedOp(nn.Module):
     def __init__(self, C, stride, mask):
         super(MixedOp, self).__init__()
         self.stride = stride
-        self._ops = nn.ModuleList()
-        mask_1 = np.nonzero(mask)[0]
+        self._ops = nn.ModuleList() # list of operations to fill in from mask
+        mask_1 = np.nonzero(mask)[0] # subset of all operations that should be activated
         self._super_mask = mask_1
         if len(mask_1) != 0:
             for selected in np.nditer(mask_1):
@@ -22,6 +23,9 @@ class MixedOp(nn.Module):
                 self._ops.append(op)
 
     def forward(self, x, mask):
+
+        # pdb.set_trace()
+
         if (mask==0).all():
             if self.stride == 1:
                 # return x.mul(0.)
@@ -34,7 +38,10 @@ class MixedOp(nn.Module):
             if len(mask_2) != 0:
                 for selected in np.nditer(mask_2):
                     pos = np.where(self._super_mask==selected)[0][0]
-                    result += self._ops[pos](x)
+                    # result += self._ops[pos](x) # suspect line that causes memory spike
+                    # TODO: check whether this decreases memory usage
+                    result += self._ops[pos](x).data
+            
             return result
 
 
@@ -53,7 +60,7 @@ class Cell(nn.Module):
         self._steps = steps
         self._multiplier = multiplier
 
-        self._ops = nn.ModuleList()
+        self._ops = nn.ModuleList() # a list of MixedOp objects
         self._bns = nn.ModuleList()
         cnt = 0
         for i in range(self._steps):
@@ -64,6 +71,7 @@ class Cell(nn.Module):
                 cnt += 1
 
     def forward(self, s0, s1, mask):
+        # TODO: variables with gradients accumulated here? 
         s0 = self.preprocess0(s0)
         s1 = self.preprocess1(s1)
 
@@ -122,9 +130,14 @@ class Network(nn.Module):
     def forward(self, input, mask):
         s0 = s1 = self.stem(input)
         for i, cell in enumerate(self.cells):
+            # pdb.set_trace()
             s0, s1 = s1, cell.forward(s0, s1, mask)
         out = self.global_pooling(s1)
+        
+        # logits = self.classifier(out.view(out.size(0), -1)) # does this also incur big memory usage?
+        # TODO: check if this decreases memory use
         logits = self.classifier(out.view(out.size(0), -1))
+        
         return logits
 
 

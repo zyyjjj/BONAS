@@ -11,8 +11,8 @@ from opendomain_utils.ioutils import get_geno_hash, get_trained_csv, get_trained
 from samplers import EASampler, RandomSampler
 import numpy as np
 from BO_tools.trainer import Trainer
-from memory_profiler import profile
-from profiling import get_CPU_memory_info, get_GPU_memory_info
+# from memory_profiler import profile
+from BO_tools.profiling import get_CPU_memory_info, get_GPU_memory_info
 
 class Runner(object):
     def __init__(self,
@@ -111,9 +111,9 @@ class Runner(object):
 
     def train_super_model(self, data_points):
         '''
-                :param data_points: list<dict<adj,ops>>
-                :return:trained accs and hashes of subnets
-                '''
+        :param data_points: list<dict<adj,ops>>
+        :return:trained accs and hashes of subnets
+        '''
         genotypes = [transform_Genotype(data_point['adjacency_matrix'], data_point['operations']) for data_point in
                      data_points]
         eval_genotypes = None
@@ -177,7 +177,6 @@ class Runner(object):
             logging.info(f"iter{iteration},current max: {self.max_acc}, max hash {self.max_hash}")
             selection_index += 1
 
-    @profile
     def run_super(self):
         for iteration in range(self.iterations):
             # fully train super_model!!!!
@@ -194,7 +193,6 @@ class Runner(object):
             logging.info("Retrain regression model with expanded data")
             self.optimizer.retrain_LR()
 
-    @profile
     def run(self):
         if self.mode == "supernet":
             self.run_super()

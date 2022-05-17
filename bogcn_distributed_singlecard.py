@@ -5,12 +5,12 @@ To search on a dataset such as imagenet, which requires more memory, DDP is expe
 '''
 import subprocess
 import pickle
-import os
+import os, sys
 from settings import local_root_dir
 from opendomain_utils.ioutils import create_dirs
 create_dirs()
 python_path = 'python' #path of python command
-gpu_num = 8
+gpu_num = 1 # TODO: change back to 8
 tasks = []
 for gpu in range(gpu_num):
     cmd = [python_path, os.path.join(local_root_dir, 'BOGCN_opendomain.py'), f"--gpu={gpu}"]
